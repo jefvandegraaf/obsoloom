@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    />
+    <title>Select area</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.35);
+        cursor: crosshair;
+        user-select: none;
+        font: 12px system-ui, sans-serif;
+      }
+
+      /* The selection is a hole punched through the dim layer, so the area
+         being chosen is shown at full brightness. */
+      #sel {
+        position: absolute;
+        display: none;
+        border: 2px solid #e8112d;
+        background: rgba(255, 255, 255, 0.04);
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+      }
+
+      #size {
+        position: absolute;
+        top: -26px;
+        left: 0;
+        padding: 3px 8px;
+        border-radius: 5px;
+        background: #e8112d;
+        color: #fff;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      #hint {
+        position: absolute;
+        left: 50%;
+        top: 24px;
+        transform: translateX(-50%);
+        padding: 9px 16px;
+        border-radius: 5px;
+        background: rgba(18, 19, 23, 0.92);
+        color: #fff;
+        font-size: 13px;
+      }
+
+      #hint b {
+        color: #ff8f72;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="hint">Drag to select the recording area · <b>Esc</b> to cancel</div>
+    <div id="sel"><span id="size"></span></div>
+    <script src="region.js"></script>
+  </body>
+</html>

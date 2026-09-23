@@ -1,0 +1,483 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    />
+    <title>Obsoloom settings</title>
+    <style>
+      :root {
+        --bg: #17181c;
+        --line: rgba(255, 255, 255, 0.1);
+        --fg: #fff;
+        --muted: rgba(255, 255, 255, 0.5);
+        --accent: #1a73e8;
+        --danger: #e2421e;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        height: 100%;
+        background: var(--bg);
+        color: var(--fg);
+        font: 12.5px system-ui, sans-serif;
+        user-select: none;
+        /* Scroll rather than clip: a fixed height silently hid the last two
+           rows when the panel grew. */
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      /* Authored display: beats [hidden]'s default display:none, so any
+         element that can be hidden needs this explicit rule. */
+
+      /* Thin overlay scrollbar: the default one is wide enough to crowd a
+         278px panel. */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      /* A slim draggable strip so the panel can be moved without a title bar. */
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 32px;
+        padding: 0 8px 0 12px;
+        border-bottom: 1px solid var(--line);
+        -webkit-app-region: drag;
+      }
+
+      header b {
+        font-size: 11.5px;
+        font-weight: 600;
+      }
+
+      #dismiss {
+        -webkit-app-region: no-drag;
+        width: 22px;
+        height: 22px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      #dismiss:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+      }
+
+      main {
+        display: flex;
+        flex-direction: column;
+        gap: 13px;
+        padding: 14px 14px 16px;
+      }
+
+      .row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .label {
+        font-size: 9.5px;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .seg {
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.07);
+      }
+
+      .seg button {
+        flex: 1;
+        padding: 7px 6px;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.72);
+        font: inherit;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .seg button:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+      }
+
+
+      .seg button.active {
+        background: #fff;
+        color: #111;
+        font-weight: 600;
+      }
+
+      .split {
+        display: flex;
+        gap: 8px;
+      }
+
+      .split button {
+        flex: 1;
+        padding: 9px 8px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .split button:hover {
+        background: rgba(255, 255, 255, 0.14);
+      }
+
+      .wide {
+        width: 100%;
+        margin-top: 6px;
+        padding: 9px 8px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .wide:hover {
+        background: rgba(255, 255, 255, 0.14);
+      }
+
+      .split button.active {
+        background: #fff;
+        color: #111;
+        font-weight: 600;
+      }
+
+      /* Blur is a system toggle we can only deep-link to, so it reads as a
+         link-out rather than an on/off control. */
+      #fx::after {
+        content: " ↗";
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+
+
+
+
+
+
+      select {
+        width: 100%;
+        padding: 7px 8px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        font: inherit;
+        font-size: 11.5px;
+        cursor: pointer;
+      }
+
+      select option {
+        background: #16171b;
+        color: #fff;
+      }
+
+      .folder {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        font: inherit;
+        font-size: 11px;
+        text-align: left;
+        cursor: pointer;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        direction: rtl;
+      }
+
+      .folder:hover {
+        background: rgba(255, 255, 255, 0.14);
+      }
+
+      /* Section dividers: the panel covers two unrelated things -- the camera
+         window and the screen recording -- and reading as one flat list made
+         the recording controls look like camera settings. */
+      .section {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+      }
+
+      .section::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--line);
+      }
+
+      .section-title {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.72);
+      }
+
+      .folder-row {
+        display: flex;
+        gap: 6px;
+      }
+
+      .folder-row .folder {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .icon-btn {
+        flex: 0 0 34px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        cursor: pointer;
+        padding: 0;
+      }
+
+      .icon-btn:hover {
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      .icon-btn svg {
+        width: 15px;
+        height: 15px;
+        fill: currentColor;
+      }
+
+      .slider-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .reset {
+        border: 0;
+        border-radius: 5px;
+        padding: 1px 7px;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--muted);
+        font: inherit;
+        font-size: 10px;
+        cursor: pointer;
+        min-width: 30px;
+      }
+
+      .reset:hover {
+        background: rgba(255, 255, 255, 0.18);
+        color: #fff;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        height: 18px;
+        appearance: none;
+        background: transparent;
+        cursor: pointer;
+      }
+
+      input[type="range"]::-webkit-slider-runnable-track {
+        height: 4px;
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      input[type="range"]::-webkit-slider-thumb {
+        appearance: none;
+        width: 13px;
+        height: 13px;
+        margin-top: -4.5px;
+        border-radius: 50%;
+        background: #fff;
+      }
+
+
+      .cta-row {
+        display: flex;
+        gap: 7px;
+        margin-top: 2px;
+        padding-top: 13px;
+        border-top: 1px solid var(--line);
+      }
+
+      .cta-back {
+        flex: 0 0 82px;
+        padding: 10px 8px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .cta-back:hover {
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      .cta-record {
+        flex: 1;
+        padding: 10px 8px;
+        border: 0;
+        border-radius: 5px;
+        background: #e8112d;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .cta-record:hover {
+        background: #c70f27;
+      }
+
+      .meta {
+        margin-top: 2px;
+        padding-top: 11px;
+        border-top: 1px solid var(--line);
+        text-align: center;
+        font-size: 10px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <b>Obsoloom</b>
+      <button id="dismiss" aria-label="Close settings">&times;</button>
+    </header>
+
+    <main>
+      <div class="row">
+        <span class="label">Layout</span>
+        <div class="seg">
+          <button id="breakout">Breakout</button>
+          <button id="side">Side</button>
+        </div>
+      </div>
+
+      <!-- Breakout only: shape and preset sizes. -->
+      <div class="row" id="shape-row">
+        <span class="label">Shape</span>
+        <div class="seg">
+          <button id="sh-circle">Circle</button>
+          <button id="sh-rounded">Rounded</button>
+          <button id="sh-sharp">Square</button>
+        </div>
+      </div>
+
+      <div class="row" id="size-row">
+        <span class="label">Size</span>
+        <div class="seg">
+          <button id="sz-small">Small</button>
+          <button id="sz-mid">Mid</button>
+          <button id="sz-big">Big</button>
+        </div>
+      </div>
+
+      <!-- Side only: width fraction and which edge it hugs. -->
+      <div class="row" id="width-row">
+        <span class="label">Width</span>
+        <div class="seg">
+          <button id="fifth">1/5</button>
+          <button id="twofifths">2/5</button>
+          <button id="half">1/2</button>
+        </div>
+      </div>
+
+      <div class="row" id="edge-row">
+        <span class="label">Position</span>
+        <div class="seg">
+          <button id="edge-left">Left</button>
+          <button id="edge-right">Right</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <span class="label">Source</span>
+        <select id="cams"></select>
+      </div>
+
+      <div class="row">
+        <span class="label">Quality</span>
+        <select id="quality"></select>
+      </div>
+
+      <div class="row">
+        <span class="label">Picture</span>
+        <div class="split">
+          <button id="mirror">Mirror</button>
+          <button id="fx" aria-label="Opens Windows camera settings">Blur</button>
+        </div>
+        <button id="visual" class="wide">Visual settings…</button>
+      </div>
+
+      <div class="cta-row">
+        <button class="cta-back" id="back">Back</button>
+        <button class="cta-record" id="record">Start recording</button>
+      </div>
+
+      <p class="meta" id="meta"></p>
+    </main>
+
+    <script src="settings.js"></script>
+  </body>
+</html>

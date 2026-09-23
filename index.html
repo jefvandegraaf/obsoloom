@@ -1,0 +1,448 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src 'self' data:; media-src 'self' blob: mediastream:; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    />
+    <title>Obsoloom</title>
+    <style>
+      :root {
+        --frame-width: 0px;
+        --frame-color: transparent;
+        --red: #e8112d;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        overflow: hidden;
+        font: 12px system-ui, sans-serif;
+        user-select: none;
+      }
+
+      /* No -webkit-app-region anywhere in this file. Windows treats a drag
+         region as a title bar: it ignores CSS cursors there and swallows
+         mousemove, which is why neither the move cursor nor the opacity
+         ramp ever worked. Gestures are reported to the main process instead
+         (see renderer.js), which moves and resizes the window itself. */
+      #shell {
+        cursor: move;
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        border: var(--frame-width) solid var(--frame-color);
+      }
+
+      /* ---------- shapes ---------- */
+
+      /* The radius goes on the video too: a <video> gets its own compositing
+         layer and can escape the parent's overflow:hidden. */
+      body.breakout.circle #shell,
+      body.breakout.circle #video {
+        border-radius: 50%;
+      }
+
+      /* Matches the radius Windows 11 gives the opaque window itself. */
+      body.breakout.rounded #shell,
+      body.breakout.rounded #video {
+        border-radius: 8px;
+      }
+
+      body.breakout.sharp #shell,
+      body.breakout.sharp #video,
+      body.side #shell,
+      body.side #video {
+        border-radius: 0;
+      }
+
+      /* Spotlight fills the captured frame edge to edge. */
+      body.spotlight #shell,
+      body.spotlight #video {
+        border-radius: 0 !important;
+      }
+
+      #video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        background: #000;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+      }
+
+      #video.mirrored {
+        transform: scaleX(-1);
+      }
+
+      /* ---------- resize handles ---------- */
+
+      /* Full-length strips along each edge plus corner squares. They only
+         report the gesture; the resize itself happens in the main process,
+         so the cursor and the behaviour always agree. */
+      .edgezone,
+      .cornerzone {
+        position: absolute;
+        z-index: 3;
+      }
+
+      .edgezone.top,
+      .edgezone.bottom {
+        left: 24px;
+        right: 24px;
+        height: 12px;
+        cursor: ns-resize;
+      }
+
+      .edgezone.top {
+        top: 0;
+      }
+
+      .edgezone.bottom {
+        bottom: 0;
+      }
+
+      .edgezone.left,
+      .edgezone.right {
+        top: 24px;
+        bottom: 24px;
+        width: 12px;
+        cursor: ew-resize;
+      }
+
+      .edgezone.left {
+        left: 0;
+      }
+
+      .edgezone.right {
+        right: 0;
+      }
+
+      .cornerzone {
+        width: 24px;
+        height: 24px;
+      }
+
+      .cornerzone.nw {
+        top: 0;
+        left: 0;
+        cursor: nwse-resize;
+      }
+
+      .cornerzone.se {
+        bottom: 0;
+        right: 0;
+        cursor: nwse-resize;
+      }
+
+      .cornerzone.ne {
+        top: 0;
+        right: 0;
+        cursor: nesw-resize;
+      }
+
+      .cornerzone.sw {
+        bottom: 0;
+        left: 0;
+        cursor: nesw-resize;
+      }
+
+      /* Side mode is a docked column: height is fixed and one edge sits on
+         the screen edge, so only the inward edge can be grabbed. */
+      body.side .edgezone.top,
+      body.side .edgezone.bottom,
+      body.side .cornerzone {
+        display: none;
+      }
+
+      body.side.edge-right .edgezone.right,
+      body.side.edge-left .edgezone.left {
+        display: none;
+      }
+
+      body.side .edgezone.left,
+      body.side .edgezone.right {
+        top: 0;
+        bottom: 0;
+      }
+
+      /* ---------- ring ---------- */
+
+      /* A permanent hairline so the boundary is findable against any
+         background; the full ring while a handle is hovered or a resize is
+         in progress. Removed outright while recording -- the camera window
+         IS captured, so the ring would be in the file. */
+      #ring {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        pointer-events: none;
+        opacity: 0.35;
+        transition: opacity 0.15s ease;
+        border: 1px solid rgba(232, 17, 45, 0.5);
+      }
+
+      .edgezone:hover ~ #ring,
+      .cornerzone:hover ~ #ring,
+      body.resizing #ring {
+        opacity: 1;
+        border: 2px solid rgba(232, 17, 45, 0.9);
+        box-shadow: inset 0 0 10px 1px rgba(232, 17, 45, 0.28);
+      }
+
+      body.breakout.circle:not(.spotlight) #ring {
+        border-radius: 50%;
+      }
+
+      body.breakout.rounded:not(.spotlight) #ring {
+        border-radius: 8px;
+      }
+
+      body.recording #ring {
+        display: none !important;
+      }
+
+      /* ---------- controls ---------- */
+
+      /* Opacity is set per pointer move from renderer.js: solid across the
+         buttons, easing down to this resting value at the edge. */
+      #hud {
+        z-index: 5;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        opacity: 0.3;
+        pointer-events: none;
+      }
+
+      #hud button {
+        pointer-events: auto;
+        cursor: pointer;
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.6);
+        transition: background 0.14s ease, filter 0.1s ease;
+      }
+
+      #hud svg {
+        display: block;
+        width: 17px;
+        height: 17px;
+        stroke: #fff;
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+      }
+
+      #hud button:hover {
+        filter: brightness(1.25);
+      }
+
+      #gear:hover {
+        background: rgba(0, 0, 0, 0.85);
+      }
+
+      /* The Material icon is a filled shape; slightly larger so a solid glyph
+         reads the same weight as the stroked ones beside it. */
+      #hud #gear svg {
+        width: 19px;
+        height: 19px;
+      }
+
+      #hud #gear svg path {
+        fill: currentColor;
+        stroke: none;
+      }
+
+      #hud #gear {
+        color: #fff;
+      }
+
+      #hud #rec {
+        background: #e0281e;
+        color: #fff;
+      }
+
+      #hud #rec:hover {
+        background: rgba(0, 0, 0, 0.85);
+        color: #ff4d4d;
+      }
+
+      #hud #rec svg circle {
+        fill: currentColor;
+        stroke: none;
+      }
+
+      /* While recording the dot becomes a square: same button, next action. */
+      body.recording #hud #rec svg circle {
+        rx: 3px;
+        ry: 3px;
+      }
+
+      body.recording #hud #rec {
+        background: #fff;
+        color: #e0281e;
+      }
+
+      #quit {
+        background: rgba(226, 66, 30, 0.86);
+      }
+
+      #quit:hover {
+        background: rgba(226, 66, 30, 1);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      /* ---------- countdown ---------- */
+
+      #countdown {
+        position: absolute;
+        inset: 0;
+        z-index: 6;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 14px;
+        background: rgba(0, 0, 0, 0.55);
+        border-radius: inherit;
+        pointer-events: none;
+      }
+
+      /* The one thing you can click during a countdown. */
+      #cancelCount {
+        pointer-events: auto;
+        cursor: pointer;
+        padding: 8px 18px;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.92);
+        color: #111;
+        font: 600 13px system-ui, sans-serif;
+        letter-spacing: 0.01em;
+      }
+
+      #cancelCount:hover {
+        background: #fff;
+      }
+
+      #count {
+        font-size: 30vmin;
+        font-weight: 800;
+        line-height: 1;
+        color: #fff;
+        text-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+        animation: countpop 1s ease-out;
+      }
+
+      @keyframes countpop {
+        0% { transform: scale(0.6); opacity: 0.2; }
+        35% { transform: scale(1); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+
+      /* ---------- resolution badge ---------- */
+
+      #res {
+        z-index: 2;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, 40px);
+        padding: 3px 9px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.62);
+        color: #fff;
+        font-size: 10.5px;
+        letter-spacing: 0.02em;
+        opacity: 0;
+        transition: opacity 0.14s ease;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+
+      #shell:hover #res {
+        opacity: 1;
+      }
+
+      /* display, not opacity: an opacity-0 badge is still a hover target and
+         still composited, and this window IS the recording. */
+      body.recording #res,
+      body.counting #res {
+        display: none !important;
+      }
+
+      #status {
+        position: absolute;
+        inset: 0;
+        z-index: 7;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        color: #fff;
+        text-align: center;
+        line-height: 1.5;
+        background: rgba(0, 0, 0, 0.7);
+      }
+
+      body.errored #status {
+        display: flex;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="shell">
+      <video id="video" autoplay playsinline muted></video>
+
+      <div class="edgezone top" data-dir="n"></div>
+      <div class="edgezone bottom" data-dir="s"></div>
+      <div class="edgezone left" data-dir="w"></div>
+      <div class="edgezone right" data-dir="e"></div>
+      <div class="cornerzone nw" data-dir="nw"></div>
+      <div class="cornerzone ne" data-dir="ne"></div>
+      <div class="cornerzone sw" data-dir="sw"></div>
+      <div class="cornerzone se" data-dir="se"></div>
+      <div id="ring"></div>
+
+      <div id="countdown" hidden>
+        <span id="count">3</span>
+        <button id="cancelCount">Cancel</button>
+      </div>
+      <div id="status"></div>
+      <div id="res"></div>
+
+      <!-- The controls are not here: they live in their own
+           content-protected window (hud.html) so they can stay usable
+           through a take without appearing in the recording. -->
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>

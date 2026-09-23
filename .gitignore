@@ -1,0 +1,11 @@
+# Electron's binary is ~240MB and re-downloadable.
+node_modules/
+
+# Build output: the installer alone is 111MB.
+dist/
+
+# Working files from patch scripts.
+*.bak
+*.bak*
+*.log
+*.err

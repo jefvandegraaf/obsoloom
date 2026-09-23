@@ -1,0 +1,67 @@
+{
+  "name": "obsoloom",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Webcam window and screen recorder for client walkthroughs",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "icon": "electron tools/make-icon.js",
+    "dist": "electron-builder --win --x64"
+  },
+  "devDependencies": {
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3"
+  },
+  "allowScripts": {
+    "electron@44.3.0": true,
+    "electron-winstaller@5.4.0": true
+  },
+  "productName": "Obsoloom",
+  "build": {
+    "appId": "com.obsoloom.app",
+    "productName": "Obsoloom",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!dist/**",
+      "!tools/**",
+      "!*.bak*",
+      "!**/*.md",
+      "!android/**"
+    ],
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Obsoloom"
+    },
+    "copyright": "Copyright © 2026 Jef van de Graaf",
+    "asarUnpack": [
+      "node_modules/koffi/**",
+      "node_modules/@koromix/**"
+    ]
+  },
+  "author": {
+    "name": "Jef van de Graaf",
+    "email": "hello@jefvandegraaf.com"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "koffi": "^3.3.0"
+  }
+}

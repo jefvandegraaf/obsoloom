@@ -1,0 +1,24 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.obsoloom.camera'
+    compileSdk 37
+
+    defaultConfig {
+        applicationId 'com.obsoloom.camera'
+        // Camera2 SessionConfiguration and low-latency encoding both want a
+        // reasonably modern Android; 10 covers practically every phone still
+        // in use as a camera.
+        minSdk 29
+        targetSdk 36
+        versionCode 1
+        versionName '0.1'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

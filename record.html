@@ -1,0 +1,489 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    />
+    <title>Obsoloom recording</title>
+    <style>
+      :root {
+        --bg: #17181c;
+        --line: rgba(255, 255, 255, 0.1);
+        --muted: rgba(255, 255, 255, 0.5);
+        --red: #e8112d;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        height: 100%;
+        background: var(--bg);
+        color: #fff;
+        font: 13px system-ui, sans-serif;
+        user-select: none;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+
+      /* Thin overlay scrollbar: the default one is wide enough to crowd a
+         278px panel. */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 40px;
+        padding: 0 10px 0 16px;
+        border-bottom: 1px solid var(--line);
+        -webkit-app-region: drag;
+      }
+
+      header b {
+        font-size: 12.5px;
+      }
+
+      #dismiss {
+        -webkit-app-region: no-drag;
+        width: 22px;
+        height: 22px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 15px;
+        cursor: pointer;
+      }
+
+      #dismiss:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+      }
+
+      main {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        /* Bottom padding matches the sides so the last control is not
+           flush against the window edge. */
+        padding: 16px 16px 18px;
+      }
+
+      .label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .seg {
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.07);
+      }
+
+      .seg button {
+        flex: 1;
+        padding: 8px 6px;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.72);
+        font: inherit;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .seg button:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+      }
+
+      .seg button.active {
+        background: #fff;
+        color: #111;
+        font-weight: 600;
+      }
+
+      .seg small {
+        display: block;
+        font-size: 9.5px;
+        font-weight: 400;
+        opacity: 0.6;
+      }
+
+      select {
+        width: 100%;
+        padding: 10px 10px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      select option {
+        background: #16171b;
+      }
+
+      .folder-row {
+        display: flex;
+        gap: 6px;
+      }
+
+      .folder {
+        flex: 1;
+        min-width: 0;
+        padding: 10px 10px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        font: inherit;
+        font-size: 11.5px;
+        text-align: left;
+        cursor: pointer;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        direction: rtl;
+      }
+
+      .folder:hover {
+        background: rgba(255, 255, 255, 0.14);
+      }
+
+      #go {
+        width: 100%;
+        padding: 14px 12px;
+        border: 0;
+        border-radius: 5px;
+        background: var(--red);
+        color: #fff;
+        font: inherit;
+        font-size: 13.5px;
+        line-height: 1.2;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      #go:hover {
+        background: #c70f27;
+      }
+
+      /* Camera and picture controls, reachable before and during a take. */
+      .pair {
+        display: flex;
+        gap: 8px;
+      }
+
+      .secondary {
+        flex: 1;
+        margin-top: 0;
+        line-height: 1.2;
+        padding: 10px 8px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .secondary:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+      }
+
+
+      /* ---------- countdown ---------- */
+
+      #countdown {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: var(--bg);
+      }
+
+      #count {
+        font-size: 96px;
+        font-weight: 800;
+        line-height: 1;
+        color: var(--red);
+        animation: pop 1s ease-out infinite;
+      }
+
+      @keyframes pop {
+        0% { transform: scale(0.75); opacity: 0.3; }
+        30% { transform: scale(1); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+
+      /* ---------- live ---------- */
+
+      #live {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 18px 16px 18px;
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-bottom: 4px;
+      }
+
+      .dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: var(--red);
+        animation: blink 1.4s ease-in-out infinite;
+      }
+
+      body.paused .dot {
+        animation: none;
+        background: var(--muted);
+      }
+
+      @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.25; }
+      }
+
+      .status b {
+        font-size: 13px;
+      }
+
+      #elapsed {
+        font-size: 34px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.01em;
+      }
+
+
+      /* Spotlight is the one control used mid-take, so it sits apart from
+         the transport row and reads as the primary action. */
+      .spotlight {
+        width: 100%;
+        margin-top: auto;
+        padding: 11px;
+        border: 1px solid rgba(232, 17, 45, 0.5);
+        border-radius: 5px;
+        background: rgba(232, 17, 45, 0.14);
+        color: #ff8f72;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .spotlight:hover {
+        background: rgba(232, 17, 45, 0.26);
+        color: #fff;
+      }
+
+      body.spotlit .spotlight {
+        background: #e8112d;
+        border-color: #e8112d;
+        color: #fff;
+      }
+
+      .shortcut-hint {
+        margin-top: 7px;
+        font-size: 10px;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.38);
+      }
+
+      .live-actions {
+        display: flex;
+        gap: 7px;
+        margin-top: 10px;
+      }
+
+      #live .pair {
+        margin-top: 10px;
+      }
+
+      /* During the countdown the controls are present but inert: the panel
+         should not flash to black and back. */
+      body.counting .live-actions button,
+      body.counting .spotlight {
+        opacity: 0.4;
+        pointer-events: none;
+      }
+
+      body.counting .dot {
+        animation: none;
+        background: #d89b2c;
+      }
+
+      .live-actions button {
+        flex: 1;
+        padding: 11px 6px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .live-actions button:hover {
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      #stop {
+        background: var(--red);
+        border-color: var(--red);
+      }
+
+      #stop:hover {
+        background: #c70f27;
+      }
+      .check {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 11px;
+        cursor: pointer;
+      }
+
+      .check input {
+        margin: 0;
+        cursor: pointer;
+        accent-color: var(--red);
+      }
+
+      .check:hover {
+        color: #fff;
+      }
+
+      /* Shown only when the chosen mic cannot actually be opened. */
+      .note {
+        margin-top: 6px;
+        color: var(--red);
+        font-size: 11.5px;
+        line-height: 1.4;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Pre-flight: everything you need to set before the countdown starts. -->
+    <div id="setup">
+      <header>
+        <b>Ready to record?</b>
+        <button id="dismiss" aria-label="Cancel">&times;</button>
+      </header>
+
+      <main>
+        <div id="screen-row" hidden>
+          <span class="label">Screen</span>
+          <div class="seg" id="screens"></div>
+        </div>
+
+        <div>
+          <span class="label">Frame</span>
+          <div class="seg">
+            <button id="pr-landscape">16:9<small>1920×1080</small></button>
+            <button id="pr-custom">Custom<small id="customSize">pick area</small></button>
+          </div>
+        </div>
+
+        <div>
+          <span class="label">Microphone</span>
+          <select id="audio"></select>
+          <div id="micNote" class="note" hidden></div>
+        </div>
+
+        <div>
+          <span class="label">Save to</span>
+          <div class="folder-row">
+            <button id="folder" class="folder"></button>
+          </div>
+        </div>
+
+        <div>
+          <span class="label">Camera</span>
+          <div class="pair">
+            <button id="camera-settings" class="secondary">Shape &amp; source</button>
+            <button id="visual-settings" class="secondary">Picture</button>
+          </div>
+        </div>
+
+        <button id="go">Start recording</button>
+      </main>
+    </div>
+
+    <!-- Countdown so there is time to get set before capture begins. -->
+
+
+    <!-- Live: the part that was missing entirely. -->
+    <div id="live" hidden>
+      <div class="status">
+        <span class="dot"></span>
+        <b id="statusText">Recording</b>
+      </div>
+      <div id="elapsed">00:00</div>
+
+      <button id="spotlight" class="spotlight">Spotlight me</button>
+
+      <div class="live-actions">
+        <button id="pause" aria-label="Pause">Pause</button>
+        <button id="restart" aria-label="Discard and start over">Restart</button>
+        <button id="stop" aria-label="Stop and save">Stop</button>
+      </div>
+
+      <div class="pair">
+        <button id="live-camera-settings" class="secondary">Shape &amp; source</button>
+        <button id="live-visual-settings" class="secondary">Picture</button>
+      </div>
+    </div>
+
+    <script src="record.js"></script>
+  </body>
+</html>

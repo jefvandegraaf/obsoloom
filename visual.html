@@ -1,0 +1,303 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    />
+    <title>Obsoloom visual</title>
+    <style>
+      :root {
+        --bg: #17181c;
+        --line: rgba(255, 255, 255, 0.1);
+        --fg: #fff;
+        --muted: rgba(255, 255, 255, 0.5);
+        --accent: #e8112d;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        height: 100%;
+        background: var(--bg);
+        color: var(--fg);
+        font: 12.5px system-ui, sans-serif;
+        user-select: none;
+        overflow: hidden;
+      }
+
+      /* The header stays put and the controls scroll beneath it: the phone
+         offers more controls than fit on a short screen, and with nothing
+         able to scroll the lower ones were simply unreachable. */
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        flex: none;
+      }
+
+
+      /* Thin overlay scrollbar: the default one is wide enough to crowd a
+         278px panel. */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 32px;
+        padding: 0 8px 0 12px;
+        border-bottom: 1px solid var(--line);
+        -webkit-app-region: drag;
+      }
+
+      header b {
+        font-size: 11.5px;
+        font-weight: 600;
+      }
+
+      #dismiss {
+        -webkit-app-region: no-drag;
+        width: 22px;
+        height: 22px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      #dismiss:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+      }
+
+      main {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        padding: 14px 14px 16px;
+      }
+
+      /* Rows keep their natural height; without this a flex column squeezes
+         them to fit instead of scrolling. */
+      main > * {
+        flex: none;
+      }
+
+      .row {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+
+      .head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .label {
+        font-size: 9.5px;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .value {
+        font-size: 10.5px;
+        font-variant-numeric: tabular-nums;
+        color: var(--muted);
+        min-width: 34px;
+        text-align: right;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        height: 18px;
+        appearance: none;
+        background: transparent;
+        cursor: pointer;
+      }
+
+      input[type="range"]::-webkit-slider-runnable-track {
+        height: 4px;
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      input[type="range"]::-webkit-slider-thumb {
+        appearance: none;
+        width: 13px;
+        height: 13px;
+        margin-top: -4.5px;
+        border-radius: 50%;
+        background: #fff;
+      }
+
+      footer {
+        margin-top: 2px;
+        padding-top: 13px;
+        border-top: 1px solid var(--line);
+      }
+
+      #reset {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      #reset:hover {
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+
+      .cta-row {
+        display: flex;
+        gap: 7px;
+        margin-top: 2px;
+        padding-top: 13px;
+        border-top: 1px solid var(--line);
+      }
+
+      .cta-back {
+        flex: 0 0 82px;
+        padding: 10px 8px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .cta-back:hover {
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      .cta-record {
+        flex: 1;
+        padding: 10px 8px;
+        border: 0;
+        border-radius: 5px;
+        background: #e8112d;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .cta-record:hover {
+        background: #c70f27;
+      }
+
+      #controls {
+        display: flex;
+        flex-direction: column;
+        gap: 13px;
+      }
+
+      /* A control that only applies in another mode (manual focus distance
+         while focus is automatic) stays visible, but clearly inactive. */
+      .row.off {
+        opacity: 0.35;
+        pointer-events: none;
+      }
+
+      select {
+        width: 100%;
+        padding: 7px 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        font: inherit;
+        font-size: 11.5px;
+        cursor: pointer;
+      }
+
+      select option {
+        background: #16171b;
+      }
+
+      .check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11.5px;
+        color: rgba(255, 255, 255, 0.8);
+        cursor: pointer;
+      }
+
+      .check input {
+        margin: 0;
+        cursor: pointer;
+        accent-color: #e8112d;
+      }
+
+      .empty {
+        font-size: 11.5px;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.5);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <b>Visual settings</b>
+      <button id="dismiss" aria-label="Close">&times;</button>
+    </header>
+
+    <main>
+      <div id="controls"></div>
+      <p id="empty" class="empty" hidden></p>
+
+      <footer>
+        <button id="reset">Reset to camera defaults</button>
+
+        <div class="cta-row">
+          <button class="cta-back" id="back">Back</button>
+          <button class="cta-record" id="record">Start recording</button>
+        </div>
+      </footer>
+    </main>
+
+    <script src="visual.js"></script>
+  </body>
+</html>

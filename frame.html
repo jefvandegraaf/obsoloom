@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    />
+    <title>Obsoloom frame</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        overflow: hidden;
+        font: 11.5px system-ui, sans-serif;
+        pointer-events: none;
+        user-select: none;
+      }
+
+      /* Outlines exactly the region ffmpeg will capture. The window is
+         content-protected, so this is visible on the monitor and absent from
+         the recording. */
+      #f {
+        position: absolute;
+        inset: 0;
+        border: 3px solid rgba(232, 17, 45, 0.95);
+        box-sizing: border-box;
+      }
+
+      #tag {
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 4px 9px;
+        background: #e8112d;
+        color: #fff;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        border-bottom-right-radius: 5px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #fff;
+        display: none;
+      }
+
+      body.recording .dot {
+        display: block;
+        animation: blink 1.2s ease-in-out infinite;
+      }
+
+      @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.25; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="f"></div>
+    <div id="tag"><span class="dot"></span><span id="label"></span></div>
+    <script src="frame.js"></script>
+  </body>
+</html>
